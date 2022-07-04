@@ -11,255 +11,13 @@ import typer
 
 from dotenv import load_dotenv
 from web3 import Web3
-from redis import Redis  # type: ignore
+from redis import Redis
+
+from scrape_721.constants import ERC_165_ABI, ERC_721_ABI, ERC_721_INTERFACE_ID
+from scrape_721.contract_utils import find_contract_deploy  # type: ignore
 
 load_dotenv()
-
 app = typer.Typer()
-
-ERC_721_INTERFACE_ID: str = "0x80ac58cd"
-ERC_165_ABI = [
-    {
-        "inputs": [
-            {
-                "internalType": "bytes4",
-                "name": "interfaceId",
-                "type": "bytes4",
-            },
-        ],
-        "name": "supportsInterface",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool",
-            },
-        ],
-        "stateMutability": "view",
-        "type": "function",
-    },
-]
-ERC_721_ABI = [
-    {
-        "constant": False,
-        "inputs": [
-            {"internalType": "address", "name": "to", "type": "address"},
-            {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-        ],
-        "name": "approve",
-        "outputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "constant": False,
-        "inputs": [
-            {"internalType": "address", "name": "to", "type": "address"},
-            {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-        ],
-        "name": "mint",
-        "outputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "constant": False,
-        "inputs": [
-            {"internalType": "address", "name": "from", "type": "address"},
-            {"internalType": "address", "name": "to", "type": "address"},
-            {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-        ],
-        "name": "safeTransferFrom",
-        "outputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "constant": False,
-        "inputs": [
-            {"internalType": "address", "name": "from", "type": "address"},
-            {"internalType": "address", "name": "to", "type": "address"},
-            {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-            {"internalType": "bytes", "name": "_data", "type": "bytes"},
-        ],
-        "name": "safeTransferFrom",
-        "outputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "constant": False,
-        "inputs": [
-            {"internalType": "address", "name": "to", "type": "address"},
-            {"internalType": "bool", "name": "approved", "type": "bool"},
-        ],
-        "name": "setApprovalForAll",
-        "outputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "constant": False,
-        "inputs": [
-            {"internalType": "address", "name": "from", "type": "address"},
-            {"internalType": "address", "name": "to", "type": "address"},
-            {"internalType": "uint256", "name": "tokenId", "type": "uint256"},
-        ],
-        "name": "transferFrom",
-        "outputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "function",
-    },
-    {
-        "inputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "constructor",
-    },
-    {
-        "anonymous": False,
-        "inputs": [
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "from",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "to",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256",
-            },
-        ],
-        "name": "Transfer",
-        "type": "event",
-    },
-    {
-        "anonymous": False,
-        "inputs": [
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "approved",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256",
-            },
-        ],
-        "name": "Approval",
-        "type": "event",
-    },
-    {
-        "anonymous": False,
-        "inputs": [
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "operator",
-                "type": "address",
-            },
-            {
-                "indexed": False,
-                "internalType": "bool",
-                "name": "approved",
-                "type": "bool",
-            },
-        ],
-        "name": "ApprovalForAll",
-        "type": "event",
-    },
-    {
-        "inputs": [],
-        "name": "name",
-        "outputs": [{"internalType": "string", "name": "", "type": "string"}],
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "inputs": [],
-        "name": "symbol",
-        "outputs": [{"internalType": "string", "name": "", "type": "string"}],
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "constant": True,
-        "inputs": [{"internalType": "address", "name": "owner", "type": "address"}],
-        "name": "balanceOf",
-        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-        "payable": False,
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "constant": True,
-        "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
-        "name": "getApproved",
-        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-        "payable": False,
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "constant": True,
-        "inputs": [
-            {"internalType": "address", "name": "owner", "type": "address"},
-            {"internalType": "address", "name": "operator", "type": "address"},
-        ],
-        "name": "isApprovedForAll",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-        "payable": False,
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "constant": True,
-        "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
-        "name": "ownerOf",
-        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-        "payable": False,
-        "stateMutability": "view",
-        "type": "function",
-    },
-    {
-        "constant": True,
-        "inputs": [{"internalType": "bytes4", "name": "interfaceId", "type": "bytes4"}],
-        "name": "supportsInterface",
-        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-        "payable": False,
-        "stateMutability": "view",
-        "type": "function",
-    },
-]
 
 
 def fetch(job_hash, contract_address, from_block, to_block, config):
@@ -271,7 +29,7 @@ def fetch(job_hash, contract_address, from_block, to_block, config):
     if supports_721:
         contract_erc_721 = w3.eth.contract(address=address, abi=ERC_721_ABI)
         write_header(job_hash, path)
-        write_records(job_hash, contract_erc_721, from_block, to_block, config)
+        fetch_records(job_hash, contract_erc_721, from_block, to_block, config)
 
 
 def supports_erc_721(address, w3):
@@ -309,7 +67,7 @@ def write_header(job_hash, path):
         )
 
 
-def write_records(job_hash, contract, from_block, to_block, config):
+def fetch_records(job_hash, contract, from_block, to_block, config):
     show_progress = itemgetter("show_progress")(config)
 
     token_name = contract.functions.name().call()
@@ -330,7 +88,7 @@ def write_records(job_hash, contract, from_block, to_block, config):
                     else end_block - current_block
                 )
 
-                write_block_range(
+                fetch_block_range(
                     job_hash,
                     contract,
                     current_block,
@@ -348,7 +106,7 @@ def write_records(job_hash, contract, from_block, to_block, config):
                 2000 if current_block <= end_block - 2000 else end_block - current_block
             )
 
-            write_block_range(
+            fetch_block_range(
                 job_hash,
                 contract,
                 current_block,
@@ -361,7 +119,7 @@ def write_records(job_hash, contract, from_block, to_block, config):
             current_block += increment
 
 
-def write_block_range(
+def fetch_block_range(
     job_hash, contract, from_block, to_block, token_name, token_symbol, config
 ):
     path = itemgetter("path")(config)
@@ -501,10 +259,10 @@ def write_row(writer, record):
 def scrape(
     address: str,
     from_block: int = typer.Option(
-        0,
+        None,
         "--from-block",
         "-f",
-        help="Starting block of data fetch. Defaults to 0",
+        help="Starting block of data fetch. If not passed the script will intelligently determine the creation block of the contract and use that as the starting block",
         show_default=False,
     ),
     to_block: int = typer.Option(
@@ -575,8 +333,12 @@ def scrape(
             )
             raise typer.Exit(code=1)
 
+    if from_block is None:
+        typer.echo("Searching for contract start block....")
+        from_block = find_contract_deploy(address, w3, 0, w3.eth.get_block_number())
+        typer.echo(f"Contract start block found: {from_block}")
+
     if to_block is None:
-        w3 = Web3(Web3.HTTPProvider(os.environ["RPC_URL"]))
         to_block = w3.eth.get_block_number()
 
     job_hash = f"{address[:10]}_{str(datetime.now().isoformat(timespec='minutes'))}"
@@ -589,7 +351,7 @@ def scrape(
     )
 
     config = {
-        "w3": Web3(Web3.HTTPProvider(os.environ["RPC_URL"])),
+        "w3": w3,
         "r": Redis(host="localhost", port=6379, db=0) if cache else None,
         "path": path,
         "cache": cache,
