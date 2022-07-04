@@ -525,13 +525,14 @@ def scrape(
         None,
         "--rpc-url",
         "-r",
-        help="The Ethereum RPC Node URL. If not provided the script will search the environment for $RPC_URL",
+        help="The Ethereum RPC Node URL. If not provided the script will search the environment for $RPC_URL. The RPC must be provided by one of these two channels",
     ),
     cache: bool = typer.Option(
         True,
         "--cache/--no-cache",
         "-r/-R",
-        help="Highly recommended: Use redis caching for improved job time. If true, a redis server is required to be available on localhost:6379",
+        help="Highly recommended: Use redis caching for improved job time. If true, a redis server is required to be available on localhost:6379. Defaults to --cache",
+        show_default=False,
     ),
 ):
     """
