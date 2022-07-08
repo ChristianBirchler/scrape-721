@@ -127,16 +127,21 @@ def fetch_block_range(
         fromBlock=from_block, toBlock=to_block
     )
 
-    if len(filter.get_all_entries()) != 0:
-        records = [
-            get_record_from_log(entry, token_name, token_symbol, config)
-            for entry in filter.get_all_entries()
-        ]
+    entries = filter.get_all_entries()
 
-        with open(f"{path}/{job_hash}.csv", "a+") as f:
-            writer = csv.writer(f)
-            for record in records:
-                write_row(writer, record)
+    if len(entries) != 0:
+        try:
+            records = [
+                get_record_from_log(entry, token_name, token_symbol, config)
+                for entry in entries
+            ]
+
+            with open(f"{path}/{job_hash}.csv", "a+") as f:
+                writer = csv.writer(f)
+                for record in records:
+                    write_row(writer, record)
+        except Exception:
+            print(f"Request timed out - missing block range {from_block} to {to_block}")
 
 
 def get_record_from_log(log, token_name, token_symbol, config):
@@ -335,7 +340,7 @@ def scrape(
 
     if from_block is None:
         typer.echo("Searching for contract start block....")
-        from_block = find_contract_deploy(address, w3, 0, w3.eth.get_block_number())
+        from_block = find_contract_deploy(address, w3, 0, w3.eth.get_block_number()) + 1
         typer.echo(f"Contract start block found: {from_block}")
 
     if to_block is None:
@@ -359,3 +364,21 @@ def scrape(
     }
 
     fetch(job_hash, address, from_block, to_block, config)
+
+
+if __name__ == "__main__":
+    config = {
+        "w3": Web3(Web3.HTTPProvider(os.environ["RPC_URL"])),
+        "r": Redis(host="localhost", port=6379, db=0),
+        "path": os.getcwd(),
+        "cache": True,
+        "show_progress": True,
+    }
+
+    fetch(
+        "my_job",
+        "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
+        15101305 - 8000,
+        15101305,
+        config,
+    )

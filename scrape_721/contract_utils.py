@@ -1,7 +1,27 @@
+import os
+
+from dotenv import load_dotenv
 from scrape_721.constants import ERC_165_ABI, ERC_721_INTERFACE_ID
+from web3 import Web3
+
+load_dotenv()
+w3_global = None
 
 
-def is_contract(address, w3, block=None):
+def configure(rpc_url: str | None = None):
+    global w3_global
+
+    w3_global = (
+        Web3(Web3.HTTPProvider(rpc_url))
+        if rpc_url is not None
+        else Web3(Web3.HTTPProvider(os.environ["RPC_URL"]))
+    )
+
+
+def is_contract(address, w3=None, block=None):
+    if w3 is None:
+        w3 = w3_global
+
     address = w3.toChecksumAddress(address)
     code = (
         w3.eth.get_code(address) if block is None else w3.eth.get_code(address, block)
@@ -10,7 +30,10 @@ def is_contract(address, w3, block=None):
     return True if code != b"" else False
 
 
-def supports_erc_721(address, w3):
+def supports_erc_721(address, w3=None):
+    if w3 is None:
+        w3 = w3_global
+
     address = w3.toChecksumAddress(address)
     contract_erc_165 = w3.eth.contract(address=address, abi=ERC_165_ABI)
 
@@ -20,9 +43,9 @@ def supports_erc_721(address, w3):
         return False
 
 
-def find_contract_deploy(address, w3, start_block=0, end_block=None):
-    # Do check if is contract in general
-    # Do generatl if supports erc_721
+def find_contract_deploy(address, w3=None, start_block=0, end_block=None):
+    if w3 is None:
+        w3 = w3_global
 
     if end_block is None:
         end_block = w3.eth.get_block_number()
