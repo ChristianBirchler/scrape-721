@@ -23,7 +23,7 @@ You must define the $RPC_URL in one of these ways or the script will fail.
 
 ### Redis Setup
 
-The package used redis caching to drastically speed up the scrape operations. (Caching already queried account balances)
+The package uses redis caching to drastically speed up the scrape operations. (Caching already queried account balances)
 
 This means in order to run with the default settings, _you must have a local redis instance available, accessible via localhost_.
 
