@@ -52,7 +52,9 @@ def write_header(job_hash, path):
                 "block_hash",
                 "contract_address",
                 "from",
+                "is_from_EOA",
                 "to",
+                "is_to_EOA",
                 "token_id",
                 "token_name",
                 "token_symbol",
@@ -76,6 +78,7 @@ def fetch_records(job_hash, contract, from_block, to_block, config):
     current_block = from_block
     end_block = to_block
 
+    # Catch exception per iteration
     if show_progress:
         with typer.progressbar(
             length=to_block - from_block,
@@ -154,7 +157,9 @@ def get_record_from_log(log, token_name, token_symbol, config):
         "transaction_index": log["transactionIndex"],
         "contract_address": log["address"],
         "from": log["args"]["from"],
+        "is_from_EOA": True if w3.eth.get_code(log["args"]["from"]) == "0x" else False,
         "to": log["args"]["to"],
+        "is_to_EOA": True if w3.eth.get_code(log["args"]["to"]) == "0x" else False,
         "token_id": log["args"]["tokenId"],
         "token_name": token_name,
         "token_symbol": token_symbol,
