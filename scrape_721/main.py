@@ -2,6 +2,7 @@
 import os
 import csv
 import json
+import logging
 
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +22,7 @@ app = typer.Typer()
 
 
 def fetch(job_hash, contract_address, from_block, to_block, config):
+    logging.debug("fetch\tjob_hash={}, contract_address={}, from_block={}, to_block={}, config={}".format(job_hash, contract_address, from_block, to_block, config))
     w3, path = itemgetter("w3", "path")(config)
 
     address = w3.toChecksumAddress(contract_address)
@@ -33,6 +35,7 @@ def fetch(job_hash, contract_address, from_block, to_block, config):
 
 
 def supports_erc_721(address, w3):
+    logging.debug("supports_erc_721\taddress={}, w3={}".format(address, w3))
     contract_erc_165 = w3.eth.contract(address=address, abi=ERC_165_ABI)
 
     try:
@@ -42,6 +45,7 @@ def supports_erc_721(address, w3):
 
 
 def write_header(job_hash, path):
+    logging.debug("write_header\tjob_hash={}, path={}".format(job_hash, path))
     with open(f"{path}/{job_hash}.csv", "w+") as f:
         writer = csv.writer(f)
         writer.writerow(
@@ -70,6 +74,7 @@ def write_header(job_hash, path):
 
 
 def fetch_records(job_hash, contract, from_block, to_block, config):
+    logging.debug("fetch_records\tjob_hash={}, contract={}, from_block={}, to_block={}, config={}".format(job_hash, contract, from_block, to_block, config))
     show_progress = itemgetter("show_progress")(config)
 
     token_name = contract.functions.name().call()
@@ -125,6 +130,7 @@ def fetch_records(job_hash, contract, from_block, to_block, config):
 def fetch_block_range(
     job_hash, contract, from_block, to_block, token_name, token_symbol, config
 ):
+    logging.debug("fetch_block_range\tjob_hash={}, contract={}, from_block={}, to_block={}, token_name={}, token_symbol={}, config={}".format(job_hash, contract, from_block, to_block, token_name, token_symbol, config))
     path = itemgetter("path")(config)
     filter = contract.events.Transfer.createFilter(
         fromBlock=from_block, toBlock=to_block
@@ -148,6 +154,7 @@ def fetch_block_range(
 
 
 def get_record_from_log(log, token_name, token_symbol, config):
+    logging.debug("get_record_from_log\tlog={}, token_name={}, token_symbol={}, config={}".format(log, token_name, token_symbol, config))
     w3 = itemgetter("w3")(config)
 
     record = {
@@ -169,6 +176,7 @@ def get_record_from_log(log, token_name, token_symbol, config):
 
 
 def get_block_and_transaction_data(record, config):
+    logging.debug("get_block_and_transaction_data\trecord={}, config={}".format(record, config))
     w3, r, cache = itemgetter("w3", "r", "cache")(config)
 
     block_number = record["block_number"]
@@ -208,6 +216,7 @@ def get_block_and_transaction_data(record, config):
 
 
 def get_balance_data(record, config):
+    logging.debug("get_balance_data\trecord={}, config={}".format(record, config))
     w3, r, cache = itemgetter("w3", "r", "cache")(config)
 
     block_number = record["block_number"]
@@ -242,6 +251,7 @@ def get_balance_data(record, config):
 
 
 def write_row(writer, record):
+    logging.debug("write_row\twriter={}, record={}".format(writer, record))
     writer.writerow(
         [
             record["tx_hash"],
@@ -250,7 +260,9 @@ def write_row(writer, record):
             record["block_hash"],
             record["contract_address"],
             record["from"],
+            record["is_from_EOA"],
             record["to"],
+            record["is_to_EOA"],
             record["token_id"],
             record["token_name"],
             record["token_symbol"],
@@ -307,6 +319,9 @@ def scrape(
     Retrieve ERC-721 token information. Expects a required contract address.
     The output file is appended continously. That way, in case the program crashes, the already fetched data is preserved.
     """
+    logs_dir = "./logs"
+    os.makedirs(logs_dir, exist_ok=True)
+    logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename='{}/{}-{}.log'.format(logs_dir, datetime.now(), address), encoding='utf-8', level=logging.DEBUG)
     if rpc_url is None:
         try:
             rpc_url = os.environ["RPC_URL"]
