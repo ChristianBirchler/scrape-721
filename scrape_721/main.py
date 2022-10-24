@@ -22,7 +22,11 @@ app = typer.Typer()
 
 
 def fetch(job_hash, contract_address, from_block, to_block, config):
-    logging.debug("fetch\tjob_hash={}, contract_address={}, from_block={}, to_block={}, config={}".format(job_hash, contract_address, from_block, to_block, config))
+    logging.debug(
+        "fetch\tjob_hash={}, contract_address={}, from_block={}, to_block={}, config={}".format(
+            job_hash, contract_address, from_block, to_block, config
+        )
+    )
     w3, path = itemgetter("w3", "path")(config)
 
     address = w3.toChecksumAddress(contract_address)
@@ -74,7 +78,11 @@ def write_header(job_hash, path):
 
 
 def fetch_records(job_hash, contract, from_block, to_block, config):
-    logging.debug("fetch_records\tjob_hash={}, contract={}, from_block={}, to_block={}, config={}".format(job_hash, contract, from_block, to_block, config))
+    logging.debug(
+        "fetch_records\tjob_hash={}, contract={}, from_block={}, to_block={}, config={}".format(
+            job_hash, contract, from_block, to_block, config
+        )
+    )
     show_progress = itemgetter("show_progress")(config)
 
     token_name = contract.functions.name().call()
@@ -85,65 +93,41 @@ def fetch_records(job_hash, contract, from_block, to_block, config):
 
     # Catch exception per iteration
     if show_progress:
-        with typer.progressbar(
-            length=to_block - from_block,
-            label="Block progress",
-        ) as block_range:
+        with typer.progressbar(length=to_block - from_block, label="Block progress") as block_range:
             while current_block < end_block:
-                increment = (
-                    2000
-                    if current_block <= end_block - 2000
-                    else end_block - current_block
-                )
+                increment = 2000 if current_block <= end_block - 2000 else end_block - current_block
 
                 fetch_block_range(
-                    job_hash,
-                    contract,
-                    current_block,
-                    current_block + increment,
-                    token_name,
-                    token_symbol,
-                    config,
+                    job_hash, contract, current_block, current_block + increment, token_name, token_symbol, config
                 )
 
                 current_block += increment
                 block_range.update(increment, current_item=current_block)
     else:
         while current_block < end_block:
-            increment = (
-                2000 if current_block <= end_block - 2000 else end_block - current_block
-            )
+            increment = 2000 if current_block <= end_block - 2000 else end_block - current_block
 
             fetch_block_range(
-                job_hash,
-                contract,
-                current_block,
-                current_block + increment,
-                token_name,
-                token_symbol,
-                config,
+                job_hash, contract, current_block, current_block + increment, token_name, token_symbol, config
             )
 
             current_block += increment
 
 
-def fetch_block_range(
-    job_hash, contract, from_block, to_block, token_name, token_symbol, config
-):
-    logging.debug("fetch_block_range\tjob_hash={}, contract={}, from_block={}, to_block={}, token_name={}, token_symbol={}, config={}".format(job_hash, contract, from_block, to_block, token_name, token_symbol, config))
-    path = itemgetter("path")(config)
-    filter = contract.events.Transfer.createFilter(
-        fromBlock=from_block, toBlock=to_block
+def fetch_block_range(job_hash, contract, from_block, to_block, token_name, token_symbol, config):
+    logging.debug(
+        "fetch_block_range\tjob_hash={}, contract={}, from_block={}, to_block={}, token_name={}, token_symbol={}, config={}".format(
+            job_hash, contract, from_block, to_block, token_name, token_symbol, config
+        )
     )
+    path = itemgetter("path")(config)
+    filter = contract.events.Transfer.createFilter(fromBlock=from_block, toBlock=to_block)
 
     entries = filter.get_all_entries()
 
     if len(entries) != 0:
         try:
-            records = [
-                get_record_from_log(entry, token_name, token_symbol, config)
-                for entry in entries
-            ]
+            records = [get_record_from_log(entry, token_name, token_symbol, config) for entry in entries]
 
             with open(f"{path}/{job_hash}.csv", "a+") as f:
                 writer = csv.writer(f)
@@ -154,8 +138,21 @@ def fetch_block_range(
 
 
 def get_record_from_log(log, token_name, token_symbol, config):
-    logging.debug("get_record_from_log\tlog={}, token_name={}, token_symbol={}, config={}".format(log, token_name, token_symbol, config))
+    logging.debug(
+        "get_record_from_log\tlog={}, token_name={}, token_symbol={}, config={}".format(
+            log, token_name, token_symbol, config
+        )
+    )
     w3 = itemgetter("w3")(config)
+
+    try:
+        is_from_EOA = True if w3.eth.get_code(log["args"]["from"]) == "0x" else False
+    except Exception:
+        is_from_EOA = None
+    try:
+        is_to_EOA = True if w3.eth.get_code(log["args"]["to"]) == "0x" else False
+    except Exception:
+        is_to_EOA = None
 
     record = {
         "tx_hash": w3.toHex(log["transactionHash"]),
@@ -164,9 +161,9 @@ def get_record_from_log(log, token_name, token_symbol, config):
         "transaction_index": log["transactionIndex"],
         "contract_address": log["address"],
         "from": log["args"]["from"],
-        "is_from_EOA": True if w3.eth.get_code(log["args"]["from"]) == "0x" else False,
+        "is_from_EOA": is_from_EOA,
         "to": log["args"]["to"],
-        "is_to_EOA": True if w3.eth.get_code(log["args"]["to"]) == "0x" else False,
+        "is_to_EOA": is_to_EOA,
         "token_id": log["args"]["tokenId"],
         "token_name": token_name,
         "token_symbol": token_symbol,
@@ -192,14 +189,7 @@ def get_block_and_transaction_data(record, config):
             "block_timestamp": base_block.timestamp,
             "gas_used": base_block.gasUsed,
             "transactions": list(
-                map(
-                    lambda tx: {
-                        "gas": tx.gas,
-                        "gas_price": tx.gasPrice,
-                        "nonce": tx.nonce,
-                    },
-                    base_block.transactions,
-                )
+                map(lambda tx: {"gas": tx.gas, "gas_price": tx.gasPrice, "nonce": tx.nonce}, base_block.transactions)
             ),
         }
         transaction = block["transactions"][transaction_index]
@@ -229,25 +219,18 @@ def get_balance_data(record, config):
     if cache and r.exists(from_balance_key):
         from_balance = r.get(from_balance_key)
     else:
-        from_balance = float(
-            w3.fromWei(w3.eth.get_balance(from_address, block_number), "ether")
-        )
+        from_balance = float(w3.fromWei(w3.eth.get_balance(from_address, block_number), "ether"))
         if cache:
             r.set(from_balance_key, from_balance)
 
     if cache and r.exists(to_balance_key):
         to_balance = r.get(to_balance_key)
     else:
-        to_balance = float(
-            w3.fromWei(w3.eth.get_balance(to_address, block_number), "ether")
-        )
+        to_balance = float(w3.fromWei(w3.eth.get_balance(to_address, block_number), "ether"))
         if cache:
             r.set(to_balance_key, to_balance)
 
-    return record | {
-        "from_balance": from_balance,
-        "to_balance": to_balance,
-    }
+    return record | {"from_balance": from_balance, "to_balance": to_balance}
 
 
 def write_row(writer, record):
@@ -321,7 +304,13 @@ def scrape(
     """
     logs_dir = "./logs"
     os.makedirs(logs_dir, exist_ok=True)
-    logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename='{}/{}-{}.log'.format(logs_dir, datetime.now(), address), encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(
+        format="%(asctime)s %(message)s",
+        datefmt="%m/%d/%Y %I:%M:%S %p",
+        filename="{}/{}-{}.log".format(logs_dir, datetime.now(), address),
+        encoding="utf-8",
+        level=logging.DEBUG,
+    )
     if rpc_url is None:
         try:
             rpc_url = os.environ["RPC_URL"]
@@ -395,10 +384,4 @@ if __name__ == "__main__":
         "show_progress": True,
     }
 
-    fetch(
-        "my_job",
-        "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
-        15101305 - 8000,
-        15101305,
-        config,
-    )
+    fetch("my_job", "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D", 15101305 - 8000, 15101305, config)

@@ -1,24 +1,12 @@
 ERC_721_INTERFACE_ID: str = "0x80ac58cd"
 ERC_165_ABI = [
     {
-        "inputs": [
-            {
-                "internalType": "bytes4",
-                "name": "interfaceId",
-                "type": "bytes4",
-            },
-        ],
+        "inputs": [{"internalType": "bytes4", "name": "interfaceId", "type": "bytes4"}],
         "name": "supportsInterface",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool",
-            },
-        ],
+        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
         "stateMutability": "view",
         "type": "function",
-    },
+    }
 ]
 ERC_721_ABI = [
     {
@@ -97,33 +85,13 @@ ERC_721_ABI = [
         "stateMutability": "nonpayable",
         "type": "function",
     },
-    {
-        "inputs": [],
-        "payable": False,
-        "stateMutability": "nonpayable",
-        "type": "constructor",
-    },
+    {"inputs": [], "payable": False, "stateMutability": "nonpayable", "type": "constructor"},
     {
         "anonymous": False,
         "inputs": [
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "from",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "to",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256",
-            },
+            {"indexed": True, "internalType": "address", "name": "from", "type": "address"},
+            {"indexed": True, "internalType": "address", "name": "to", "type": "address"},
+            {"indexed": True, "internalType": "uint256", "name": "tokenId", "type": "uint256"},
         ],
         "name": "Transfer",
         "type": "event",
@@ -131,24 +99,9 @@ ERC_721_ABI = [
     {
         "anonymous": False,
         "inputs": [
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "approved",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "uint256",
-                "name": "tokenId",
-                "type": "uint256",
-            },
+            {"indexed": True, "internalType": "address", "name": "owner", "type": "address"},
+            {"indexed": True, "internalType": "address", "name": "approved", "type": "address"},
+            {"indexed": True, "internalType": "uint256", "name": "tokenId", "type": "uint256"},
         ],
         "name": "Approval",
         "type": "event",
@@ -156,24 +109,9 @@ ERC_721_ABI = [
     {
         "anonymous": False,
         "inputs": [
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address",
-            },
-            {
-                "indexed": True,
-                "internalType": "address",
-                "name": "operator",
-                "type": "address",
-            },
-            {
-                "indexed": False,
-                "internalType": "bool",
-                "name": "approved",
-                "type": "bool",
-            },
+            {"indexed": True, "internalType": "address", "name": "owner", "type": "address"},
+            {"indexed": True, "internalType": "address", "name": "operator", "type": "address"},
+            {"indexed": False, "internalType": "bool", "name": "approved", "type": "bool"},
         ],
         "name": "ApprovalForAll",
         "type": "event",

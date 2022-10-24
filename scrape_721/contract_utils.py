@@ -12,9 +12,7 @@ def configure(rpc_url: str | None = None):
     global w3_global
 
     w3_global = (
-        Web3(Web3.HTTPProvider(rpc_url))
-        if rpc_url is not None
-        else Web3(Web3.HTTPProvider(os.environ["RPC_URL"]))
+        Web3(Web3.HTTPProvider(rpc_url)) if rpc_url is not None else Web3(Web3.HTTPProvider(os.environ["RPC_URL"]))
     )
 
 
@@ -23,9 +21,7 @@ def is_contract(address, w3=None, block=None):
         w3 = w3_global
 
     address = w3.toChecksumAddress(address)
-    code = (
-        w3.eth.get_code(address) if block is None else w3.eth.get_code(address, block)
-    )
+    code = w3.eth.get_code(address) if block is None else w3.eth.get_code(address, block)
 
     return True if code != b"" else False
 
