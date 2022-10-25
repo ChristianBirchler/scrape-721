@@ -123,6 +123,7 @@ def fetch_block_range(job_hash, contract, from_block, to_block, token_name, toke
     path = itemgetter("path")(config)
     filter = contract.events.Transfer.createFilter(fromBlock=from_block, toBlock=to_block)
 
+    # This line causes an exception since Erigon does not support eth_getFilterLogs method
     entries = filter.get_all_entries()
 
     if len(entries) != 0:
